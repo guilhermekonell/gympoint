@@ -7,13 +7,15 @@ class Student extends Model {
         name: Sequelize.STRING,
         email: Sequelize.STRING,
         age: Sequelize.INTEGER,
-        weight: Sequelize.DOUBLE,
-        height: Sequelize.DOUBLE
+        weight: Sequelize.FLOAT,
+        height: Sequelize.FLOAT
       },
       {
         sequelize
       }
     );
+
+    return this;
   }
 }
 
