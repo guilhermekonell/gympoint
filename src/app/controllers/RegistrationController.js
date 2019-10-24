@@ -55,8 +55,6 @@ class RegistrationController {
     const price = plan.price * plan.duration;
 
     const { id } = await Registration.create({
-      student_id,
-      plan_id,
       start_date,
       end_date,
       price
@@ -83,9 +81,44 @@ class RegistrationController {
       return res.status(400).json({ error: 'Validation fails.' });
     }
 
-    const registration = await Registration.update(req.body);
+    const registration = await Registration.findByPk(req.params.id);
 
-    return res.json(registration);
+    const plan_id = req.body.plan_id ? req.body.plan_id : registration.plan_id;
+
+    const plan = await Plan.findByPk(plan_id);
+
+    let start_date = startOfHour(parseISO(req.body.start_date));
+
+    if (!start_date) {
+      start_date = registration.start_date;
+    }
+
+    const end_date = addMonths(start_date, plan.duration);
+
+    const price = plan.price * plan.duration;
+
+    const { id, student_id } = await registration.update({
+      start_date,
+      end_date,
+      price
+    });
+
+    return res.json({
+      id,
+      student_id,
+      plan_id,
+      start_date,
+      end_date,
+      price
+    });
+  }
+
+  async delete(req, res) {
+    const registration = await Registration.findByPk(req.params.id);
+
+    await registration.destroy();
+
+    return res.json();
   }
 }
 
