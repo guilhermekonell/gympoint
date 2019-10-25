@@ -1,13 +1,16 @@
 import * as Yup from 'yup';
-import { addMonths, parseISO, startOfHour } from 'date-fns';
-
+import { addMonths, parseISO, startOfHour, format } from 'date-fns';
+import pt from 'date-fns/locale/pt';
 import Registration from '../models/Registration';
 import Plan from '../models/Plan';
 import Student from '../models/Student';
 
+import Mail from '../../lib/Mail';
+
 class RegistrationController {
   async index(req, res) {
     const registrations = await Registration.findAll({
+      where: { canceled_at: null },
       attributes: ['id', 'start_date', 'end_date', 'price'],
       include: [
         {
@@ -36,16 +39,21 @@ class RegistrationController {
     }
 
     const { student_id, plan_id } = req.body;
+
     const start_date = startOfHour(parseISO(req.body.start_date));
 
+    /**
+     * Verify student exists
+     */
     const student = await Student.findByPk(student_id);
-
     if (!student) {
       return res.status(400).json({ error: 'Student not found' });
     }
 
+    /**
+     * Verify plan exists
+     */
     const plan = await Plan.findByPk(plan_id);
-
     if (!plan) {
       return res.status(400).json({ error: 'Plan not found' });
     }
@@ -54,19 +62,36 @@ class RegistrationController {
 
     const price = plan.price * plan.duration;
 
-    const { id } = await Registration.create({
+    const { id, canceled_at } = await Registration.create({
       start_date,
       end_date,
-      price
+      price,
+      student_id,
+      plan_id
+    });
+
+    await Mail.sendMail({
+      to: `${student.name} <${student.email}>`,
+      subject: 'Matrícula cadastrada',
+      template: 'registration',
+      context: {
+        student: student.name,
+        plan: plan.title,
+        end_date: format(end_date, "dd 'de' MMMM", {
+          locale: pt
+        }),
+        price: `R$${price} reais`
+      }
     });
 
     return res.json({
       id,
       student_id,
       plan_id,
+      price,
       start_date,
       end_date,
-      price
+      canceled_at
     });
   }
 
@@ -83,9 +108,29 @@ class RegistrationController {
 
     const registration = await Registration.findByPk(req.params.id);
 
-    const plan_id = req.body.plan_id ? req.body.plan_id : registration.plan_id;
+    if (!registration) {
+      return res.status(400).json({ error: 'Registration not found' });
+    }
 
+    /**
+     * Verify student exists
+     */
+    const student_id = req.body.student_id
+      ? req.body.student_id
+      : registration.student_id;
+    const student = await Student.findByPk(student_id);
+    if (!student) {
+      return res.status(400).json({ error: 'Student not found' });
+    }
+
+    /**
+     * Verify plan exists
+     */
+    const plan_id = req.body.plan_id ? req.body.plan_id : registration.plan_id;
     const plan = await Plan.findByPk(plan_id);
+    if (!plan) {
+      return res.status(400).json({ error: 'Plan not found' });
+    }
 
     let start_date = startOfHour(parseISO(req.body.start_date));
 
@@ -97,28 +142,47 @@ class RegistrationController {
 
     const price = plan.price * plan.duration;
 
-    const { id, student_id } = await registration.update({
+    const { id } = await registration.update({
       start_date,
       end_date,
-      price
+      price,
+      student_id,
+      plan_id
     });
 
     return res.json({
       id,
-      student_id,
-      plan_id,
       start_date,
       end_date,
-      price
+      price,
+      student_id,
+      plan_id
     });
   }
 
   async delete(req, res) {
-    const registration = await Registration.findByPk(req.params.id);
+    const registration = await Registration.findByPk(req.params.id, {
+      include: [
+        {
+          model: Student,
+          attributes: ['id', 'name', 'email']
+        },
+        {
+          model: Plan,
+          attributes: ['id', 'title', 'duration']
+        }
+      ]
+    });
 
-    await registration.destroy();
+    if (!registration) {
+      return res.status(400).json({ error: 'Registration not found' });
+    }
 
-    return res.json();
+    registration.canceled_at = new Date();
+
+    await registration.save();
+
+    return res.json(registration);
   }
 }
 

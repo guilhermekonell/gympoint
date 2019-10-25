@@ -21,6 +21,10 @@ module.exports = {
         onDelete: 'SET NULL',
         allowNull: true
       },
+      price: {
+        type: Sequelize.DOUBLE,
+        allowNull: false
+      },
       start_date: {
         type: Sequelize.DATE,
         allowNull: false
@@ -29,9 +33,9 @@ module.exports = {
         type: Sequelize.DATE,
         allowNull: false
       },
-      price: {
-        type: Sequelize.DOUBLE,
-        allowNull: false
+      canceled_at: {
+        type: Sequelize.DATE,
+        allowNull: true
       },
       created_at: {
         type: Sequelize.DATE,

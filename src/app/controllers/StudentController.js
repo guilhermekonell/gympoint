@@ -46,6 +46,7 @@ class StudentController {
       email: Yup.string()
         .email()
         .required(),
+      newEmail: Yup.string().email(),
       age: Yup.number(),
       height: Yup.number(),
       weight: Yup.number()
@@ -55,15 +56,29 @@ class StudentController {
       return res.status(400).json({ error: 'Validation fails.' });
     }
 
-    const { email } = req.body;
+    const { email: userEmail, newEmail } = req.body;
 
-    const student = await Student.findOne({ where: { email } });
+    const student = await Student.findOne({ where: { userEmail } });
 
     if (!student) {
-      return req.status(400).json({ error: 'Student not exists.' });
+      return res.status(400).json({ error: 'Student not exists.' });
     }
 
-    const { id, name, age, weight, height } = await student.update(req.body);
+    if (newEmail) {
+      const newStudent = await Student.findOne({ where: { email: newEmail } });
+
+      if (newStudent) {
+        return res
+          .status(400)
+          .json({ error: 'There is already a student with this email' });
+      }
+
+      req.body.email = newEmail;
+    }
+
+    const { id, name, email, age, weight, height } = await student.update(
+      req.body
+    );
 
     return res.json({
       id,
