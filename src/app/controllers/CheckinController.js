@@ -8,7 +8,7 @@ class CheckinController {
     const student = await Student.findByPk(req.params.id);
 
     if (!student) {
-      res.status(400).json({ error: 'Student not found.' });
+      return res.status(400).json({ error: 'Student not found.' });
     }
 
     const checkins = await Checkin.findAll({
@@ -17,14 +17,14 @@ class CheckinController {
       }
     });
 
-    res.json(checkins);
+    return res.json(checkins);
   }
 
   async store(req, res) {
     const student = await Student.findByPk(req.params.id);
 
     if (!student) {
-      res.status(400).json({ error: 'Student not found.' });
+      return res.status(400).json({ error: 'Student not found.' });
     }
 
     const dateNow = new Date();
@@ -40,7 +40,9 @@ class CheckinController {
     });
 
     if (numCheckins >= 5) {
-      res.status(400).json({ error: 'Maximum amount of checkins reached.' });
+      return res
+        .status(400)
+        .json({ error: 'Maximum amount of checkins reached.' });
     }
 
     const student_id = student.id;
@@ -49,7 +51,7 @@ class CheckinController {
       student_id
     });
 
-    res.json(checkin);
+    return res.json(checkin);
   }
 }
 
