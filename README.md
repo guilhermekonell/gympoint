@@ -19,4 +19,4 @@ Backend: It consists of the project API which is responsible for performing the 
 <TODO: List the routes available in the project.>
 
 ## License
-[MIT](https://choosealicense.com/licenses/mit/)
+[MIT](https://choosealicense.com/licenses/mit/) Check [LICENSE](LICENSE.md) file.
